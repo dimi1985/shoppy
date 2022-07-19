@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import 'screens/home_page.dart';
+import 'package:device_preview/device_preview.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+void main() => runApp(DevicePreview(
+    enabled: true,
+    tools: const [...DevicePreview.defaultTools],
+    builder: (context) => const MyApp()));
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -17,7 +18,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Shoppy',
       theme: ThemeData(
-        primarySwatch: Colors.deepPurple,
+        primarySwatch: Colors.indigo,
       ),
       home: const HomePage(),
     );

@@ -19,13 +19,19 @@ class _HomeState extends State<HomePage> {
   double totalBudget = 0.0;
   int chechBoxIndex = 0;
   bool _isLoading = true;
-
   double _budgetLimit = 0.0;
+  double progressValue = 0.0;
 
   @override
   void initState() {
     super.initState();
     _refreshItems();
+
+    read('budgetLimit').then((value) {
+      setState(() {
+        _budgetLimit = value;
+      });
+    });
   }
 
   final _titleController = TextEditingController();
@@ -72,72 +78,76 @@ class _HomeState extends State<HomePage> {
                   color: const Color.fromARGB(255, 71, 89, 223),
                   margin: const EdgeInsets.all(15),
                   child: ListTile(
-                      title: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Text(
+                    title: Row(
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Text(
                             _items[index]['title'],
+                            style: TextStyle(
+                                fontSize: size.width <= 400 ? 14 : 18,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const Spacer(),
+                        Expanded(
+                          flex: 1,
+                          child: Text(
+                            _items[index]['price'].toStringAsFixed(2),
                             style: const TextStyle(
                                 fontSize: 18,
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold),
                           ),
-                          const SizedBox(
-                            width: 25,
+                        )
+                      ],
+                    ),
+                    subtitle: Row(
+                      children: [
+                        Expanded(
+                          child: IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () =>
+                                _deleteItem(_items[index]['id'], index),
                           ),
-                          Row(
-                            children: [
-                              Text(
-                                _items[index]['price'].toStringAsFixed(2),
-                                style: const TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                              const Icon(Icons.euro_symbol),
-                            ],
-                          )
-                        ],
-                      ),
-                      trailing: SizedBox(
-                        width: 150,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit),
-                              onPressed: () {
-                                if (selectedBbox.contains(index)) {
-                                  return;
-                                } else {
-                                  _showForm(_items[index]['id']);
-                                }
-                              },
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete),
-                              onPressed: () =>
-                                  _deleteItem(_items[index]['id'], index),
-                            ),
-                            Checkbox(
-                              activeColor: Colors.red,
-                              value: selectedBbox.contains(index),
-                              onChanged: (value) {
-                                setState(() {
-                                  // remove or add index to _selected_box
-                                  if (selectedBbox.contains(index)) {
-                                    selectedBbox.remove(index);
-                                    sum -= _items[index]['price'];
-                                  } else {
-                                    selectedBbox.add(index);
-                                    sum += _items[index]['price'];
-                                  }
-                                });
-                              },
-                            ),
-                          ],
                         ),
-                      )),
+                        Expanded(
+                          child: IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () {
+                              if (selectedBbox.contains(index)) {
+                                return;
+                              } else {
+                                _showForm(_items[index]['id']);
+                              }
+                            },
+                          ),
+                        ),
+                        Expanded(
+                          child: Checkbox(
+                            activeColor: Colors.red,
+                            value: selectedBbox.contains(index),
+                            onChanged: (value) {
+                              setState(() {
+                                // remove or add index to _selected_box
+                                if (selectedBbox.contains(index)) {
+                                  selectedBbox.remove(index);
+                                  sum -= _items[index]['price'];
+                                } else {
+                                  selectedBbox.add(index);
+                                  sum += _items[index]['price'];
+                                }
+                                progressValue = sum / _budgetLimit;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -151,37 +161,82 @@ class _HomeState extends State<HomePage> {
                 topRight: Radius.circular(20),
               )),
           height: 100,
-          child: Row(
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              //_showSavedValue
-              Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text(
-                      'Total Sum is: ${selectedBbox.isEmpty ? '0' : sum.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                          fontSize: 25,
-                          color: Color.fromARGB(255, 209, 194, 239),
-                          fontWeight: FontWeight.bold),
-                    ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                          'Total Sum is: ${selectedBbox.isEmpty ? '0' : sum.toStringAsFixed(2)}',
+                          style: TextStyle(
+                              fontSize: size.width <= 400 ? 18 : 25,
+                              color: const Color.fromARGB(255, 209, 194, 239),
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      if (selectedBbox.isNotEmpty)
+                        Icon(
+                          Icons.euro_symbol,
+                          size: size.width <= 400 ? 15 : 25,
+                          color: const Color.fromARGB(255, 209, 194, 239),
+                        ),
+                      SizedBox(
+                        width: size.width <= 400 ? 10 : 20,
+                      ),
+                      Icon(Icons.shopping_cart,
+                          size: size.width <= 400 ? 15 : 25,
+                          color: const Color.fromARGB(255, 209, 194, 239)),
+                      Text(
+                        selectedBbox.length.toString(),
+                        style: TextStyle(
+                            color: const Color.fromARGB(255, 209, 194, 239),
+                            fontSize: size.width <= 400 ? 18 : 25),
+                      ),
+                    ],
                   ),
-                  Text(totalBudget.toString()),
-                ],
-              ),
-              if (selectedBbox.isNotEmpty)
-                const Icon(
-                  Icons.euro_symbol,
-                  color: Color.fromARGB(255, 209, 194, 239),
                 ),
-              const Icon(Icons.shopping_cart),
-              Text(
-                selectedBbox.length.toString(),
-                style: const TextStyle(fontSize: 18),
-              )
-            ],
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: SizedBox(
+                          height: 25,
+                          child: ClipRRect(
+                            borderRadius:
+                                const BorderRadius.all(Radius.circular(10)),
+                            child: LinearProgressIndicator(
+                                value: progressValue,
+                                backgroundColor: Colors.grey,
+                                color: Colors.purple),
+                          )),
+                    ),
+                    const SizedBox(
+                      width: 10,
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Text(
+                        _budgetLimit.toString(),
+                        style: TextStyle(
+                            fontSize: size.width <= 400 ? 18 : 25,
+                            color: const Color.fromARGB(255, 209, 194, 239),
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                )
+              ],
+            ),
           ),
         ),
       ),
@@ -192,7 +247,7 @@ class _HomeState extends State<HomePage> {
           size: 30,
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
     );
   }
 
@@ -288,11 +343,9 @@ class _HomeState extends State<HomePage> {
   // Insert a new journal to the database
   Future<void> _addItem() async {
     await SQLHelper.createItem(
-        _titleController.text,
-        _priceController.text.isEmpty
-            ? 0.0
-            : double.parse(_priceController.text),
-        sum);
+      _titleController.text,
+      _priceController.text.isEmpty ? 0.0 : double.parse(_priceController.text),
+    );
     setState(() {
       _refreshItems();
     });
@@ -375,28 +428,14 @@ class _HomeState extends State<HomePage> {
                                 child: ElevatedButton(
                                   onPressed: () async {
                                     // Save budget to Shared
-                                    var prefs =
-                                        await SharedPreferences.getInstance();
-
+                                    remove('budgetLimit');
+                                    save('budgetLimit',
+                                        double.parse(_priceController.text));
                                     // Clear the text fields
                                     _priceController.text = '';
-                                    _budgetLimit =
-                                        prefs.getDouble('budgetLimit') ?? 0;
-                                    setState(() {
-                                      prefs
-                                          .setDouble(
-                                              'budgetLimit',
-                                              double.parse(
-                                                  _priceController.text))
-                                          .then((bool success) {
-                                        if (success) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            const SnackBar(
-                                              content: Text('OK'),
-                                            ),
-                                          );
-                                        }
+                                    read('budgetLimit').then((value) {
+                                      setState(() {
+                                        _budgetLimit = value;
                                       });
                                     });
                                     //Close Form
@@ -419,6 +458,26 @@ class _HomeState extends State<HomePage> {
         );
       })),
     );
+  }
+
+  save(String key, value) async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setDouble(key, value);
+  }
+
+  Future read(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    //Return double
+    double? doubleValue = prefs.getDouble('budgetLimit');
+    setState(() {
+      _refreshItems();
+    });
+    return doubleValue;
+  }
+
+  remove(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.remove(key);
   }
 }
 

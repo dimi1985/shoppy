@@ -26,8 +26,7 @@ class SQLHelper {
   }
 
   // Create new item (item)
-  static Future<int> createItem(
-      String title, double? price, double? totalPrice) async {
+  static Future<int> createItem(String title, double? price) async {
     final db = await SQLHelper.db();
 
     final data = {
