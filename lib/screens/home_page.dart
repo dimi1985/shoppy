@@ -21,6 +21,7 @@ class _HomeState extends State<HomePage> {
   bool _isLoading = true;
   double _budgetLimit = 0.0;
   double progressValue = 0.0;
+  double remainSpend = 0.0;
 
   @override
   void initState() {
@@ -49,9 +50,21 @@ class _HomeState extends State<HomePage> {
           Padding(
             padding: const EdgeInsets.only(right: 80),
             child: Center(
-              child: Text(
-                'Items to Buy: ${_items.length.toString()}',
-                style: const TextStyle(fontSize: 18),
+              //remainSpend.toStringAsFixed(2)
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Items to Buy: ${_items.length.toString()}',
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                  Text(
+                    'Remain to Spend: ${remainSpend.toStringAsFixed(2)}',
+                    style: TextStyle(
+                        color: remainSpend < 0 ? Colors.red : Colors.white,
+                        fontSize: 12),
+                  )
+                ],
               ),
             ),
           ),
@@ -74,81 +87,85 @@ class _HomeState extends State<HomePage> {
               },
               child: ListView.builder(
                 itemCount: _items.length,
-                itemBuilder: (context, index) => Card(
-                  color: const Color.fromARGB(255, 71, 89, 223),
-                  margin: const EdgeInsets.all(15),
-                  child: ListTile(
-                    title: Row(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: Text(
-                            _items[index]['title'],
-                            style: TextStyle(
-                                fontSize: size.width <= 400 ? 14 : 18,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold),
+                itemBuilder: (context, index) {
+                  final item = _items[index];
+                  return Card(
+                    color: const Color.fromARGB(255, 71, 89, 223),
+                    margin: const EdgeInsets.all(15),
+                    child: ListTile(
+                      title: Row(
+                        mainAxisSize: MainAxisSize.max,
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Text(
+                              item['title'],
+                              style: TextStyle(
+                                  fontSize: size.width <= 400 ? 14 : 18,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold),
+                            ),
                           ),
-                        ),
-                        const Spacer(),
-                        Expanded(
-                          flex: 1,
-                          child: Text(
-                            _items[index]['price'].toStringAsFixed(2),
-                            style: const TextStyle(
-                                fontSize: 18,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold),
+                          const Spacer(),
+                          Expanded(
+                            flex: 1,
+                            child: Text(
+                              item['price'].toStringAsFixed(2),
+                              style: const TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          )
+                        ],
+                      ),
+                      subtitle: Row(
+                        children: [
+                          Expanded(
+                            child: IconButton(
+                              icon: const Icon(Icons.delete),
+                              onPressed: () =>
+                                  _deleteItem(_items[index]['id'], index),
+                            ),
                           ),
-                        )
-                      ],
-                    ),
-                    subtitle: Row(
-                      children: [
-                        Expanded(
-                          child: IconButton(
-                            icon: const Icon(Icons.delete),
-                            onPressed: () =>
-                                _deleteItem(_items[index]['id'], index),
-                          ),
-                        ),
-                        Expanded(
-                          child: IconButton(
-                            icon: const Icon(Icons.edit),
-                            onPressed: () {
-                              if (selectedBbox.contains(index)) {
-                                return;
-                              } else {
-                                _showForm(_items[index]['id']);
-                              }
-                            },
-                          ),
-                        ),
-                        Expanded(
-                          child: Checkbox(
-                            activeColor: Colors.red,
-                            value: selectedBbox.contains(index),
-                            onChanged: (value) {
-                              setState(() {
-                                // remove or add index to _selected_box
+                          Expanded(
+                            child: IconButton(
+                              icon: const Icon(Icons.edit),
+                              onPressed: () {
                                 if (selectedBbox.contains(index)) {
-                                  selectedBbox.remove(index);
-                                  sum -= _items[index]['price'];
+                                  return;
                                 } else {
-                                  selectedBbox.add(index);
-                                  sum += _items[index]['price'];
+                                  _showForm(_items[index]['id']);
                                 }
-                                progressValue = sum / _budgetLimit;
-                              });
-                            },
+                              },
+                            ),
                           ),
-                        ),
-                      ],
+                          Expanded(
+                            child: Checkbox(
+                              activeColor: Colors.red,
+                              value: selectedBbox.contains(index),
+                              onChanged: (value) {
+                                setState(() {
+                                  // remove or add index to _selected_box
+                                  if (selectedBbox.contains(index)) {
+                                    selectedBbox.remove(index);
+                                    sum -= _items[index]['price'];
+                                  } else {
+                                    selectedBbox.add(index);
+                                    sum += _items[index]['price'];
+                                  }
+                                  progressValue = sum / _budgetLimit;
+                                  remainSpend = _budgetLimit - sum;
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
       bottomNavigationBar: BottomAppBar(
@@ -161,6 +178,7 @@ class _HomeState extends State<HomePage> {
                 topRight: Radius.circular(20),
               )),
           height: 100,
+          width: size.width,
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -169,16 +187,22 @@ class _HomeState extends State<HomePage> {
                 Align(
                   alignment: Alignment.topLeft,
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisSize: MainAxisSize.max,
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: Text(
-                          'Total Sum is: ${selectedBbox.isEmpty ? '0' : sum.toStringAsFixed(2)}',
+                          'Total is: ${selectedBbox.isEmpty ? '0' : sum.toStringAsFixed(2)}',
                           style: TextStyle(
-                              fontSize: size.width <= 400 ? 18 : 25,
-                              color: const Color.fromARGB(255, 209, 194, 239),
+                              fontSize: size.width <= 400
+                                  ? 18
+                                  : sum >= _budgetLimit
+                                      ? 30
+                                      : 25,
+                              color: sum >= _budgetLimit
+                                  ? const Color.fromARGB(255, 251, 39, 49)
+                                  : const Color.fromARGB(255, 209, 194, 239),
                               fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -189,19 +213,37 @@ class _HomeState extends State<HomePage> {
                           color: const Color.fromARGB(255, 209, 194, 239),
                         ),
                       SizedBox(
-                        width: size.width <= 400 ? 10 : 20,
+                        width: size.width <= 400 ? 15 : 20,
                       ),
-                      Icon(Icons.shopping_cart,
-                          size: size.width <= 400 ? 15 : 25,
-                          color: const Color.fromARGB(255, 209, 194, 239)),
-                      Text(
-                        selectedBbox.length.toString(),
-                        style: TextStyle(
-                            color: const Color.fromARGB(255, 209, 194, 239),
-                            fontSize: size.width <= 400 ? 18 : 25),
-                      ),
+                      CircleAvatar(
+                        radius: 18,
+                        backgroundColor: const Color.fromARGB(255, 59, 32, 114),
+                        child: Padding(
+                          padding: const EdgeInsets.all(5.0),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.max,
+                            children: [
+                              Icon(
+                                Icons.shopping_cart,
+                                size: size.width <= 400 ? 15 : 25,
+                                color: const Color.fromARGB(255, 209, 194, 239),
+                              ),
+                              Text(
+                                selectedBbox.length.toString(),
+                                style: TextStyle(
+                                    color: const Color.fromARGB(
+                                        255, 209, 194, 239),
+                                    fontSize: size.width <= 400 ? 18 : 25),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
                     ],
                   ),
+                ),
+                const SizedBox(
+                  height: 6,
                 ),
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -215,9 +257,11 @@ class _HomeState extends State<HomePage> {
                             borderRadius:
                                 const BorderRadius.all(Radius.circular(10)),
                             child: LinearProgressIndicator(
-                                value: progressValue,
-                                backgroundColor: Colors.grey,
-                                color: Colors.purple),
+                              value: progressValue,
+                              backgroundColor:
+                                  const Color.fromARGB(255, 247, 247, 247),
+                              color: const Color.fromARGB(255, 251, 39, 226),
+                            ),
                           )),
                     ),
                     const SizedBox(
@@ -225,12 +269,23 @@ class _HomeState extends State<HomePage> {
                     ),
                     Expanded(
                       flex: 1,
-                      child: Text(
-                        _budgetLimit.toString(),
-                        style: TextStyle(
-                            fontSize: size.width <= 400 ? 18 : 25,
+                      child: Row(
+                        children: [
+                          Text(
+                            _budgetLimit.toStringAsFixed(2),
+                            style: TextStyle(
+                                fontSize: size.width <= 400 ? 20 : 28,
+                                color: _budgetLimit == 0.0
+                                    ? const Color.fromARGB(255, 7, 233, 64)
+                                    : const Color.fromARGB(255, 233, 59, 7),
+                                fontWeight: FontWeight.bold),
+                          ),
+                          Icon(
+                            Icons.euro_symbol,
+                            size: size.width <= 400 ? 15 : 25,
                             color: const Color.fromARGB(255, 209, 194, 239),
-                            fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -340,7 +395,7 @@ class _HomeState extends State<HomePage> {
     );
   }
 
-  // Insert a new journal to the database
+  // Insert a new item to the database
   Future<void> _addItem() async {
     await SQLHelper.createItem(
       _titleController.text,
@@ -372,6 +427,8 @@ class _HomeState extends State<HomePage> {
     }
   }
 
+// This function will be triggered when the settins button is pressed
+  // here you can make a bughet limit the will be saved to Shared Preferece
   _showSettingsForm() {
     showModalBottomSheet(
       context: context,
@@ -460,11 +517,13 @@ class _HomeState extends State<HomePage> {
     );
   }
 
+//save to Shared Preferece
   save(String key, value) async {
     final prefs = await SharedPreferences.getInstance();
     prefs.setDouble(key, value);
   }
 
+//read from Shared Preferece
   Future read(String key) async {
     final prefs = await SharedPreferences.getInstance();
     //Return double
@@ -475,6 +534,7 @@ class _HomeState extends State<HomePage> {
     return doubleValue;
   }
 
+//remove Shared Preferece
   remove(String key) async {
     final prefs = await SharedPreferences.getInstance();
     prefs.remove(key);

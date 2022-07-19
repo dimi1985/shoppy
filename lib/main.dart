@@ -8,6 +8,11 @@ void main() => runApp(DevicePreview(
     tools: const [...DevicePreview.defaultTools],
     builder: (context) => const MyApp()));
 
+//turn back to default withouut preview
+//     void main() {
+//   runApp(const MyApp());
+// }
+
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
