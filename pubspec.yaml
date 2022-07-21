@@ -11,12 +11,15 @@ environment:
 
 
 dependencies:
+   
   flutter:
     sdk: flutter
   get: ^4.6.5
   sqflite: ^2.0.3
   shared_preferences: ^2.0.15
   device_preview: ^1.1.0
+  provider: ^6.0.3
+  easy_localization: ^3.0.1
 
 
   cupertino_icons: ^1.0.2
@@ -44,9 +47,10 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - assets/images/tomato.jpg
-  #   - assets/images/coffee.jpg
+  assets:
+    - assets/images/empty.png
+    - assets/lang/el.json
+    - assets/lang/en.json
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

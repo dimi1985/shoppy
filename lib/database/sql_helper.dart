@@ -7,6 +7,8 @@ class SQLHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         title TEXT,
         price REAL,
+        quantity INTEGER,
+        totalPrice REAL,
         createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
       """);
@@ -26,12 +28,15 @@ class SQLHelper {
   }
 
   // Create new item (item)
-  static Future<int> createItem(String title, double? price) async {
+  static Future<int> createItem(
+      String title, double? price, int quantity, double? totalPrice) async {
     final db = await SQLHelper.db();
 
     final data = {
       'title': title,
       'price': price,
+      'quantity': quantity,
+      'totalPrice': totalPrice,
     };
     final id = await db.insert('items', data,
         conflictAlgorithm: sql.ConflictAlgorithm.replace);
@@ -52,13 +57,15 @@ class SQLHelper {
   }
 
   // Update an item by id
-  static Future<int> updateItem(
-      int id, String title, double? price, double? totalPrice) async {
+  static Future<int> updateItem(int id, String title, double? price,
+      int quantity, double? totalPrice) async {
     final db = await SQLHelper.db();
 
     final data = {
       'title': title,
       'price': price,
+      'quantity': quantity,
+      'totalPrice': totalPrice,
       'createdAt': DateTime.now().toString()
     };
 
