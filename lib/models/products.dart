@@ -1,12 +1,12 @@
 class Product {
-  int id;
+  int? id;
   late String name;
   late double price;
   late int quantity;
   late double totalPrice;
 
   Product({
-    required this.id,
+    this.id,
     required this.name,
     required this.price,
     required this.quantity,

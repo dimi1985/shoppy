@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shoppy/database/sql_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shoppy/models/products.dart';
 import 'package:shoppy/providers/dark_theme_provider.dart';
 import 'package:shoppy/utils/app_colors.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -16,7 +17,7 @@ class HomePage extends StatefulWidget {
 
 class _HomeState extends State<HomePage> {
   // All journals
-  List<Map<String, dynamic>> _items = [];
+  List<Product> _products = [];
   List<int> selectedBbox = [];
   double sum = 0.0;
   double totalBudget = 0.0;
@@ -85,7 +86,7 @@ class _HomeState extends State<HomePage> {
                         padding: const EdgeInsets.only(left: 50),
                         child: Text(
                           'Items to Buy:'.tr() +
-                              (' ${_items.length.toString()}'),
+                              (' ${_products.length.toString()}'),
                           style: TextStyle(
                             fontSize: 18,
                             color: !themeChange.darkTheme
@@ -144,11 +145,10 @@ class _HomeState extends State<HomePage> {
                   });
                 },
                 child: ListView.builder(
-                  itemCount: _items.length,
+                  itemCount: _products.length,
                   itemBuilder: (context, index) {
-                    final item = _items[index];
-                    multiplier =
-                        _items[index]['price'] * _items[index]['quantity'];
+                    final product = _products[index];
+                    multiplier = product.price * product.quantity;
                     return Card(
                       color: !themeChange.darkTheme
                           ? AppColors.cardProductBGLightMode
@@ -170,7 +170,7 @@ class _HomeState extends State<HomePage> {
                                     Padding(
                                       padding: const EdgeInsets.all(8.0),
                                       child: Text(
-                                        'Item:'.tr() + (' ${item['title']}'),
+                                        'Item:'.tr() + (' ${product.name}'),
                                         style: TextStyle(
                                             fontSize:
                                                 size.width <= 400 ? 20 : 25,
@@ -186,7 +186,7 @@ class _HomeState extends State<HomePage> {
                                       padding: const EdgeInsets.all(8.0),
                                       child: Text(
                                         'Items to Quantity:'.tr() +
-                                            (' ${_items[index]['quantity'].toString()}'),
+                                            (' ${product.quantity.toString()}'),
                                         style: TextStyle(
                                             fontSize: 14,
                                             color: !themeChange.darkTheme
@@ -230,7 +230,7 @@ class _HomeState extends State<HomePage> {
                                           .cardProductDeleteColorDarkMode,
                                 ),
                                 onPressed: () =>
-                                    _deleteItem(_items[index]['id'], index),
+                                    _deleteItem(product.id ?? 0, index),
                               ),
                             ),
                             Expanded(
@@ -245,7 +245,7 @@ class _HomeState extends State<HomePage> {
                                   if (selectedBbox.contains(index)) {
                                     return;
                                   } else {
-                                    _showForm(_items[index]['id'], themeChange);
+                                    _showForm(product.id, themeChange);
                                   }
                                 },
                               ),
@@ -259,13 +259,13 @@ class _HomeState extends State<HomePage> {
                                     // remove or add index to _selected_box
                                     if (selectedBbox.contains(index)) {
                                       selectedBbox.remove(index);
-                                      multiplier = _items[index]['price'] *
-                                          _items[index]['quantity'];
+                                      multiplier =
+                                          product.price * product.quantity;
                                       sum -= multiplier;
                                     } else {
                                       selectedBbox.add(index);
-                                      multiplier = _items[index]['price'] *
-                                          _items[index]['quantity'];
+                                      multiplier =
+                                          product.price * product.quantity;
 
                                       sum += multiplier;
                                     }
@@ -446,9 +446,9 @@ class _HomeState extends State<HomePage> {
 
   // This function is used to fetch all data from the database
   void _refreshItems() async {
-    final data = await SQLHelper.getItems();
+    final data = await SQLHelper.getProducts();
     setState(() {
-      _items = data;
+      _products = data;
       _isLoading = false;
     });
   }
@@ -461,9 +461,9 @@ class _HomeState extends State<HomePage> {
       // id == null -> create new item
       // id != null -> update an existing item
       final existingProduct =
-          _items.firstWhere((element) => element['id'] == id);
-      _titleController.text = existingProduct['title'];
-      _priceController.text = existingProduct['price'].toString();
+          _products.firstWhere((element) => element.id == id);
+      _titleController.text = existingProduct.name;
+      _priceController.text = existingProduct.price.toString();
     }
     showModalBottomSheet(
       shape: RoundedRectangleBorder(
@@ -633,22 +633,35 @@ class _HomeState extends State<HomePage> {
 
   // Insert a new item to the database
   Future<void> _addItem() async {
-    await SQLHelper.createItem(
-        _titleController.text,
-        _priceController.text.isEmpty
+    await SQLHelper.addProduct(
+      Product(
+        name: _titleController.text,
+        price: _priceController.text.isEmpty
             ? 0.0
             : double.parse(_priceController.text),
-        quantity,
-        sum);
+        quantity: quantity,
+        totalPrice: sum,
+      ),
+    );
+
     setState(() {
       _refreshItems();
     });
   }
 
-  // Update an existing journal
-  Future<void> _updateItem(int id) async {
-    await SQLHelper.updateItem(id, _titleController.text,
-        double.parse(_priceController.text), quantity, sum);
+  // Update an existing product
+  Future<void> _updateItem(int? id) async {
+    await SQLHelper.updateProduct(
+      Product(
+        id: id ?? 0,
+        name: _titleController.text,
+        price: _priceController.text.isEmpty
+            ? 0.0
+            : double.parse(_priceController.text),
+        quantity: quantity,
+        totalPrice: sum,
+      ),
+    );
     setState(() {
       _refreshItems();
     });
@@ -659,7 +672,7 @@ class _HomeState extends State<HomePage> {
     if (selectedBbox.contains(index)) {
       return;
     } else {
-      await SQLHelper.deleteItem(id);
+      await SQLHelper.deleteProduct(id);
       setState(() {
         _refreshItems();
       });

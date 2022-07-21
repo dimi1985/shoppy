@@ -1,11 +1,13 @@
 import 'package:flutter/foundation.dart';
+import 'package:shoppy/models/products.dart';
 import 'package:sqflite/sqflite.dart' as sql;
+import 'package:sqflite/sqflite.dart';
 
 class SQLHelper {
   static Future<void> createTables(sql.Database database) async {
     await database.execute("""CREATE TABLE items(
         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-        title TEXT,
+        name TEXT,
         price REAL,
         quantity INTEGER,
         totalPrice REAL,
@@ -27,20 +29,14 @@ class SQLHelper {
     );
   }
 
-  // Create new item (item)
-  static Future<int> createItem(
-      String title, double? price, int quantity, double? totalPrice) async {
+  static Future<int> addProduct(Product product) async {
     final db = await SQLHelper.db();
-
-    final data = {
-      'title': title,
-      'price': price,
-      'quantity': quantity,
-      'totalPrice': totalPrice,
-    };
-    final id = await db.insert('items', data,
-        conflictAlgorithm: sql.ConflictAlgorithm.replace);
-    return id;
+    var raw = await db.insert(
+      "items",
+      product.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    return raw;
   }
 
   // Read all items (item)
@@ -49,33 +45,31 @@ class SQLHelper {
     return db.query('items', orderBy: "id");
   }
 
-  // Read a single item by id
-  // The app doesn't use this method but I put here in case you want to see it
-  static Future<List<Map<String, dynamic>>> getItem(int id) async {
+  static Future<List<Product>> getProducts() async {
     final db = await SQLHelper.db();
-    return db.query('items', where: "id = ?", whereArgs: [id], limit: 1);
+    var response = await db.query("items");
+    List<Product> list = response.map((c) => Product.fromMap(c)).toList();
+    return list;
   }
 
-  // Update an item by id
-  static Future<int> updateItem(int id, String title, double? price,
-      int quantity, double? totalPrice) async {
+  // Read a single item by id
+  // The app doesn't use this method but I put here in case you want to see it
+  Future<Product?> getProductWithId(int id) async {
     final db = await SQLHelper.db();
+    var response = await db.query("items", where: "id = ?", whereArgs: [id]);
+    return response.isNotEmpty ? Product.fromMap(response.first) : null;
+  }
 
-    final data = {
-      'title': title,
-      'price': price,
-      'quantity': quantity,
-      'totalPrice': totalPrice,
-      'createdAt': DateTime.now().toString()
-    };
-
-    final result =
-        await db.update('items', data, where: "id = ?", whereArgs: [id]);
-    return result;
+  static Future<int> updateProduct(Product product) async {
+    final db = await SQLHelper.db();
+    var response = await db.update("items", product.toMap(),
+        where: "id = ?", whereArgs: [product.id]);
+    return response;
   }
 
   // Delete
-  static Future<void> deleteItem(int id) async {
+
+  static Future<void> deleteProduct(int id) async {
     final db = await SQLHelper.db();
     try {
       await db.delete("items", where: "id = ?", whereArgs: [id]);
